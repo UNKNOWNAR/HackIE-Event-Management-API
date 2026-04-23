@@ -174,11 +174,9 @@ postman_collection.json # Postman collection with auto-token scripts
 
 ## AI Usage Disclosure
 
-AI (Claude) was used to assist with:
+AI was used to assist with:
 - **Scaffolding** the Swagger docstrings across all API endpoints.
 - **Generating** the Postman collection JSON with auto-token test scripts.
 - **Writing** the unit test suite (conftest fixtures, test cases).
 - **Designing** the HTML templates for PDF certificates and selection letters.
 - **Reviewing** the codebase for consistency, security issues, and Task C compliance.
-
-All core application logic (models, API routes, Celery tasks, eligibility enforcement, QR/team-code flows) was implemented with AI-assisted iteration and manual review.
