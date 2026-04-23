@@ -1,0 +1,416 @@
+openapi: 3.0.0
+info:
+  title: HackIE3 Event Management API
+  description: >
+    A feature-rich Event Management REST API with JWT authentication, RBAC,
+    QR ticketing, team registrations, certificate dispatch, mass email, and
+    admin analytics.
+  version: 2.0.0
+  contact:
+    email: amiarinjaysarkar@gmail.com
+
+servers:
+  - url: http://localhost:5000
+    description: Local Development Server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+tags:
+  - name: Auth
+    description: Authentication endpoints
+  - name: Events
+    description: Event browsing and registration (participant-facing)
+  - name: Participant
+    description: Participant profile, stats, and history
+  - name: Admin
+    description: Admin dashboard, event management, and analytics
+
+paths:
+  # ── Auth ──
+  /signup:
+    post:
+      tags: [Auth]
+      summary: Sign Up (Participant)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email, password]
+              properties:
+                username: { type: string, example: john_doe }
+                email: { type: string, example: john@example.com }
+                password: { type: string, example: password123 }
+      responses:
+        '201': { description: Participant registered }
+        '409': { description: Username or email already exists }
+
+  /login:
+    post:
+      tags: [Auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username_or_email: { type: string, example: admin }
+                password: { type: string, example: admin }
+      responses:
+        '200': { description: Login successful, returns JWT token and role }
+        '401': { description: Invalid password }
+        '404': { description: User not found }
+
+  /logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: Logout successful }
+
+  # ── Events (participant-facing) ──
+  /events:
+    get:
+      tags: [Events]
+      summary: Browse Approved Events
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: type, in: query, schema: { type: string }, description: "Filter by event_type (workshop, hackathon, seminar, competition)" }
+        - { name: venue, in: query, schema: { type: string }, description: "Filter by venue (partial match)" }
+        - { name: branch, in: query, schema: { type: string }, description: "Filter by eligible branch" }
+      responses:
+        '200': { description: List of approved events }
+
+  /events/{event_id}:
+    get:
+      tags: [Events]
+      summary: Event Detail
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: event_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Event details with registration count }
+        '404': { description: Event not found }
+
+  /events/{event_id}/register:
+    post:
+      tags: [Events]
+      summary: Register for Event
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: event_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                team_code: { type: string, example: ALPHA42, description: "Optional team code for team events" }
+      responses:
+        '201': { description: Registration successful with ticket_id }
+        '400': { description: Eligibility or team error }
+        '409': { description: Already registered }
+
+  /my/registrations:
+    get:
+      tags: [Events]
+      summary: My Registrations
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: List of current user registrations with ticket info }
+
+  /my/registrations/{reg_id}:
+    delete:
+      tags: [Events]
+      summary: Cancel Registration
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: reg_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Registration cancelled }
+        '404': { description: Registration not found }
+
+  /my/team/{team_code}:
+    get:
+      tags: [Events]
+      summary: View Team Members
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: team_code, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Team member list }
+        '404': { description: No team found }
+
+  /ticket/{ticket_id}/qr:
+    get:
+      tags: [Events]
+      summary: Get Ticket QR Code
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: ticket_id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Base64-encoded QR code PNG }
+        '404': { description: Ticket not found }
+
+  # ── Participant Profile ──
+  /participant/profile:
+    get:
+      tags: [Participant]
+      summary: Get Profile
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: Participant profile with application history }
+        '404': { description: Participant not found }
+    put:
+      tags: [Participant]
+      summary: Update Profile
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                branch: { type: string, example: Computer Science }
+                cgpa: { type: number, example: 8.9 }
+                batch_year: { type: integer, example: 2025 }
+      responses:
+        '200': { description: Profile updated }
+
+  /participant/stats:
+    get:
+      tags: [Participant]
+      summary: My Stats
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: Registered, shortlisted, selected, and attended counts }
+
+  /participant/export:
+    get:
+      tags: [Participant]
+      summary: Export My History (CSV via email)
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: Export task queued }
+
+  # ── Admin ──
+  /admin/stats:
+    get:
+      tags: [Admin]
+      summary: Dashboard Stats
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: Participant count, event count, registrations, attendance rate }
+
+  /admin/event:
+    post:
+      tags: [Admin]
+      summary: Create Event
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                job_title: { type: string, example: "AI Workshop 2026" }
+                job_description: { type: string, example: "Hands-on ML workshop" }
+                eligible_branch: { type: string, example: All }
+                cgpa_required: { type: number, example: 6.0 }
+                eligible_year: { type: integer, example: 2026 }
+                event_type: { type: string, example: workshop }
+                venue: { type: string, example: "Room 301, CS Block" }
+                max_team_size: { type: integer, example: 1 }
+                organizer_name: { type: string, example: "IEEE CS Chapter" }
+                application_deadline: { type: string, example: "2026-06-15T23:59:00" }
+      responses:
+        '201': { description: Event created }
+
+  /admin/events:
+    get:
+      tags: [Admin]
+      summary: List All Events (with filters)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string }, description: "Filter by status (approved, pending, rejected)" }
+        - { name: type, in: query, schema: { type: string }, description: "Filter by event_type" }
+      responses:
+        '200': { description: List of events }
+
+  /admin/event/{event_id}:
+    get:
+      tags: [Admin]
+      summary: Get Event with Registrations
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: event_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Event detail with registration list }
+        '404': { description: Event not found }
+    patch:
+      tags: [Admin]
+      summary: Update Event
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: event_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                job_title: { type: string }
+                job_description: { type: string }
+                status: { type: string }
+                venue: { type: string }
+                event_type: { type: string }
+                max_team_size: { type: integer }
+      responses:
+        '200': { description: Event updated }
+    delete:
+      tags: [Admin]
+      summary: Delete Event
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: event_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Event deleted }
+
+  /admin/participants:
+    get:
+      tags: [Admin]
+      summary: List All Participants (with filters)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: branch, in: query, schema: { type: string } }
+        - { name: batch, in: query, schema: { type: integer } }
+      responses:
+        '200': { description: List of participants }
+
+  /admin/users/{user_id}/toggle:
+    post:
+      tags: [Admin]
+      summary: Toggle User Active/Inactive
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: user_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: User status toggled }
+
+  /admin/registrations:
+    get:
+      tags: [Admin]
+      summary: List All Registrations (with filters)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: event_id, in: query, schema: { type: integer } }
+        - { name: present, in: query, schema: { type: string }, description: "true or false" }
+        - { name: status, in: query, schema: { type: string } }
+      responses:
+        '200': { description: List of registrations }
+
+  /admin/registrations/bulk:
+    patch:
+      tags: [Admin]
+      summary: Bulk Update Registration Status
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids: { type: array, items: { type: integer }, example: [1, 2, 3] }
+                status: { type: string, example: Selected }
+      responses:
+        '200': { description: Bulk update result }
+
+  /admin/registration/{registration_id}:
+    put:
+      tags: [Admin]
+      summary: Update Single Registration Status
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: registration_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, example: Selected }
+      responses:
+        '200': { description: Registration updated, selection letter sent if Selected }
+
+  /admin/scan/{ticket_id}:
+    post:
+      tags: [Admin]
+      summary: Scan QR - Mark Attendance
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: ticket_id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Attendance marked }
+        '404': { description: Ticket not found }
+
+  /admin/dispatch-certificates/{event_id}:
+    post:
+      tags: [Admin]
+      summary: Dispatch Certificates to Attendees
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: event_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Certificate dispatch queued (async via Celery) }
+
+  /admin/mass-email:
+    post:
+      tags: [Admin]
+      summary: Send Mass Email
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject: { type: string, example: Important Update }
+                body: { type: string, example: "Hello everyone!" }
+                filter:
+                  type: object
+                  properties:
+                    branch: { type: string, example: Computer Science }
+                    batch_year: { type: integer, example: 2026 }
+      responses:
+        '200': { description: Mass email queued }
+
+  /admin/export/{target}:
+    get:
+      tags: [Admin]
+      summary: Export CSV (participants, events, registrations)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: target, in: path, required: true, schema: { type: string, enum: [participants, events, registrations] } }
+      responses:
+        '200': { description: Export task queued, CSV sent via email }
+
+  /admin/monthly-report:
+    get:
+      tags: [Admin]
+      summary: Trigger Monthly Report (PDF)
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: Report generation triggered (async via Celery) }

@@ -1,0 +1,418 @@
+{
+  "info": {
+    "name": "HackIE³ Event Management API",
+    "description": "Complete collection for the Event Management REST API. Two roles: Admin (manages everything) and Participant (registers for events). Features: JWT auth, QR ticketing, team codes, certificate dispatch, mass email, CSV export.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:5000" },
+    { "key": "admin_token", "value": "" },
+    { "key": "participant_token", "value": "" },
+    { "key": "event_id", "value": "1" },
+    { "key": "ticket_id", "value": "" },
+    { "key": "registration_id", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Sign Up (Participant)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/signup", "host": ["{{base_url}}"], "path": ["signup"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"john_doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.collectionVariables.set('admin_token', jsonData.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/login", "host": ["{{base_url}}"], "path": ["login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username_or_email\": \"admin\",\n  \"password\": \"admin\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login (Participant)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.collectionVariables.set('participant_token', jsonData.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/login", "host": ["{{base_url}}"], "path": ["login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username_or_email\": \"john_doe\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{participant_token}}" }],
+            "url": { "raw": "{{base_url}}/logout", "host": ["{{base_url}}"], "path": ["logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Events (Participant)",
+      "item": [
+        {
+          "name": "Browse Events",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{participant_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/events",
+              "host": ["{{base_url}}"], "path": ["events"],
+              "query": [
+                { "key": "type", "value": "workshop", "disabled": true },
+                { "key": "venue", "value": "Room", "disabled": true },
+                { "key": "branch", "value": "Computer Science", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Event Detail",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{participant_token}}" }],
+            "url": { "raw": "{{base_url}}/events/{{event_id}}", "host": ["{{base_url}}"], "path": ["events", "{{event_id}}"] }
+          }
+        },
+        {
+          "name": "Register for Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.ticket_id) {",
+                  "    pm.collectionVariables.set('ticket_id', jsonData.ticket_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{participant_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/events/{{event_id}}/register", "host": ["{{base_url}}"], "path": ["events", "{{event_id}}", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"team_code\": \"ALPHA1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "My Registrations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{participant_token}}" }],
+            "url": { "raw": "{{base_url}}/my/registrations", "host": ["{{base_url}}"], "path": ["my", "registrations"] }
+          }
+        },
+        {
+          "name": "Get Ticket QR Code",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{participant_token}}" }],
+            "url": { "raw": "{{base_url}}/ticket/{{ticket_id}}/qr", "host": ["{{base_url}}"], "path": ["ticket", "{{ticket_id}}", "qr"] }
+          }
+        },
+        {
+          "name": "View Team Members",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{participant_token}}" }],
+            "url": { "raw": "{{base_url}}/my/team/ALPHA1", "host": ["{{base_url}}"], "path": ["my", "team", "ALPHA1"] }
+          }
+        },
+        {
+          "name": "Cancel Registration",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{participant_token}}" }],
+            "url": { "raw": "{{base_url}}/my/registrations/{{registration_id}}", "host": ["{{base_url}}"], "path": ["my", "registrations", "{{registration_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Participant Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{participant_token}}" }],
+            "url": { "raw": "{{base_url}}/participant/profile", "host": ["{{base_url}}"], "path": ["participant", "profile"] }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{participant_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/participant/profile", "host": ["{{base_url}}"], "path": ["participant", "profile"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch\": \"Computer Science\",\n  \"cgpa\": 8.9,\n  \"batch_year\": 2025\n}"
+            }
+          }
+        },
+        {
+          "name": "My Stats",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{participant_token}}" }],
+            "url": { "raw": "{{base_url}}/participant/stats", "host": ["{{base_url}}"], "path": ["participant", "stats"] }
+          }
+        },
+        {
+          "name": "Export My History (Email CSV)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{participant_token}}" }],
+            "url": { "raw": "{{base_url}}/participant/export", "host": ["{{base_url}}"], "path": ["participant", "export"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/stats", "host": ["{{base_url}}"], "path": ["admin", "stats"] }
+          }
+        },
+        {
+          "name": "Create Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/admin/event", "host": ["{{base_url}}"], "path": ["admin", "event"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"job_title\": \"AI Workshop 2026\",\n  \"job_description\": \"Hands-on ML workshop with TensorFlow and PyTorch\",\n  \"eligible_branch\": \"All\",\n  \"cgpa_required\": 6.0,\n  \"eligible_year\": 2026,\n  \"event_type\": \"workshop\",\n  \"venue\": \"Room 301, CS Block\",\n  \"max_team_size\": 1,\n  \"organizer_name\": \"IEEE CS Chapter\",\n  \"application_deadline\": \"2026-06-15T23:59:00\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List All Events (with filters)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/events",
+              "host": ["{{base_url}}"], "path": ["admin", "events"],
+              "query": [
+                { "key": "status", "value": "approved", "disabled": true },
+                { "key": "type", "value": "hackathon", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Event with Registrations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/event/{{event_id}}", "host": ["{{base_url}}"], "path": ["admin", "event", "{{event_id}}"] }
+          }
+        },
+        {
+          "name": "Update Event",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/admin/event/{{event_id}}", "host": ["{{base_url}}"], "path": ["admin", "event", "{{event_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"venue\": \"Updated Auditorium A\",\n  \"max_team_size\": 3\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Event",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/event/{{event_id}}", "host": ["{{base_url}}"], "path": ["admin", "event", "{{event_id}}"] }
+          }
+        },
+        {
+          "name": "All Participants (with filters)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/participants",
+              "host": ["{{base_url}}"], "path": ["admin", "participants"],
+              "query": [
+                { "key": "branch", "value": "Computer Science", "disabled": true },
+                { "key": "batch", "value": "2026", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "All Registrations (with filters)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/registrations",
+              "host": ["{{base_url}}"], "path": ["admin", "registrations"],
+              "query": [
+                { "key": "event_id", "value": "1", "disabled": true },
+                { "key": "present", "value": "true", "disabled": true },
+                { "key": "status", "value": "Registered", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Registration Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/admin/registration/{{registration_id}}", "host": ["{{base_url}}"], "path": ["admin", "registration", "{{registration_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Selected\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Bulk Status Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/admin/registrations/bulk", "host": ["{{base_url}}"], "path": ["admin", "registrations", "bulk"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [1, 2, 3],\n  \"status\": \"Selected\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Scan QR (Mark Attendance)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/scan/{{ticket_id}}", "host": ["{{base_url}}"], "path": ["admin", "scan", "{{ticket_id}}"] }
+          }
+        },
+        {
+          "name": "Dispatch Certificates",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/dispatch-certificates/{{event_id}}", "host": ["{{base_url}}"], "path": ["admin", "dispatch-certificates", "{{event_id}}"] }
+          }
+        },
+        {
+          "name": "Mass Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/admin/mass-email", "host": ["{{base_url}}"], "path": ["admin", "mass-email"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Important: Hackathon Schedule Update\",\n  \"body\": \"Hello! The hackathon venue has been moved to Main Auditorium. Please check your email for updated details.\",\n  \"filter\": {\n    \"branch\": \"Computer Science\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Export CSV (participants/events/registrations)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/export/participants", "host": ["{{base_url}}"], "path": ["admin", "export", "participants"] }
+          }
+        },
+        {
+          "name": "Toggle User Active/Inactive",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/users/2/toggle", "host": ["{{base_url}}"], "path": ["admin", "users", "2", "toggle"] }
+          }
+        },
+        {
+          "name": "Monthly Report (PDF)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/monthly-report", "host": ["{{base_url}}"], "path": ["admin", "monthly-report"] }
+          }
+        }
+      ]
+    }
+  ]
+}

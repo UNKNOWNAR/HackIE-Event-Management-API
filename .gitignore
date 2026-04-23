@@ -1,0 +1,68 @@
+# ==================================================
+# Python / Flask Backend
+# ==================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+venv/
+.env
+.env.*
+instance/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ==================================================
+# Database
+# ==================================================
+*.db
+*.sqlite
+*.sqlite3
+
+# ==================================================
+# Node / Vue Frontend
+# ==================================================
+pathfinder-frontend/node_modules/
+pathfinder-frontend/dist/
+pathfinder-frontend/.env.local
+pathfinder-frontend/.env.*.local
+pathfinder-frontend/npm-debug.log*
+pathfinder-frontend/yarn-debug.log*
+pathfinder-frontend/yarn-error.log*
+pathfinder-frontend/pnpm-debug.log*
+
+# ==================================================
+# OS / System
+# ==================================================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ==================================================
+# IDEs / Editors
+# ==================================================
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ==================================================
+# Logs & Misc
+# ==================================================
+logs/
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Celery Beat schedule files
+celerybeat-schedule.bak
+celerybeat-schedule.dat
+celerybeat-schedule.dir
+celerybeat-schedule
